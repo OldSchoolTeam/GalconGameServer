@@ -22,7 +22,12 @@ SOURCES += main.cpp \
     Player.cpp \
     Server.cpp \
     Session.cpp \
-    Socket.cpp
+    Socket.cpp \
+    ParsingException.cpp \
+    Parser.cpp \
+    Exception.cpp \
+    ConnMsg.cpp \
+    StepMsg.cpp
 
 HEADERS += \
 #    Game.h \
@@ -31,4 +36,10 @@ HEADERS += \
     Player.h \
     Server.h \
     Session.h \
-    Socket.h
+    Socket.h \
+    StepMsg.h \
+    ParsingException.h \
+    Parser.h \
+    Message.h \
+    Exception.h \
+    ConnMsg.h
