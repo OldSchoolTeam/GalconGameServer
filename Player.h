@@ -7,6 +7,8 @@ class CPlayer
 {
 public:
     CPlayer(int, QString);
+    int GetId();
+    QString GetName();
     QString ToString();
 
 private:

@@ -27,7 +27,15 @@ SOURCES += main.cpp \
     Parser.cpp \
     Exception.cpp \
     ConnMsg.cpp \
-    StepMsg.cpp
+    StepMsg.cpp \
+    TimeToStartMsg.cpp \
+    StateMsg.cpp \
+    StartMsg.cpp \
+    Fleet.cpp \
+    FinishMsg.cpp \
+    ErrMsg.cpp \
+    ConnIdMsg.cpp \
+    Planet.cpp
 
 HEADERS += \
 #    Game.h \
@@ -42,4 +50,12 @@ HEADERS += \
     Parser.h \
     Message.h \
     Exception.h \
-    ConnMsg.h
+    ConnMsg.h \
+    Planet.h \
+    Fleet.h \
+    FinishMsg.h \
+    ErrMsg.h \
+    ConnIdMsg.h \
+    TimeToStartMsg.h \
+    StateMsg.h \
+    StartMsg.h
