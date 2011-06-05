@@ -82,7 +82,7 @@ void CParser::ParseMessage(QString i_str) throw(CParsingException*)
         else
         if (msgType == "CS_CONN")
         {
-            QString stringPatternStr("[A-Za-zР-пр-џ0-9 \+-*<>=!;%\?\.,\(\)]*");
+            QString stringPatternStr("[A-Za-zР-пр-џ0-9 +-*<>=!;%?.,()/\\x005b\\x005d]{1,256}");
             msgParamsPattern.setPattern(stringPatternStr);
             if (msgParamsPattern.exactMatch(msgParams))
             {                               
