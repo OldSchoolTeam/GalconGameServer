@@ -60,14 +60,14 @@ CStateMsg CGame::AddStep(CStepMsg *i_step)
 
     foreach (int srcPlanetId, m_srcPlanets)
     {
-        // добавляем новый флот
+        // add new fleet
         CPlanet srcPlanet = m_planetList[srcPlanetId];
         int percent = i_step->GetPercent();
         int fleetSize = percent * srcPlanet.GetFleetSize() / 100;
         int srcPlanetId = srcPlanet.GetPlanetId();
 
-        // запрет на посылку флота с планеты
-        // на саму себя
+        // ban on sending fleet
+        // from planet to itself
         if (srcPlanetId != dstPlanetId)
         {
             float routeLength = GetRouteLength(srcPlanetId, dstPlanetId);
@@ -80,7 +80,7 @@ CStateMsg CGame::AddStep(CStepMsg *i_step)
 
 
 
-            // удаляем из гарнизона планеты соответствующее количество кораблей
+            // remove from garrison appropriate ships count
             int srcPlanetFleetSize = m_planetList[srcPlanetId].GetFleetSize();
             m_planetList[srcPlanetId].SetFleetSize(srcPlanetFleetSize-fleetSize);
             m_planetList[srcPlanetId].SetStartFleetSize(srcPlanetFleetSize-fleetSize);
@@ -143,12 +143,12 @@ void CGame::run()
 
 void CGame::recalculation()
 {
-    // проверка на окончание игры
+    // checking for game finish
     // ...
     bool endGameFlag = true;
     int firstPlayerId = -1;
 
-    // ищем двух играющих игроков
+    // looking for two active players
     foreach (CPlanet planet, m_planetList.values())
     {
         int planetOwnerId = planet.GetPlayerId();
@@ -156,7 +156,7 @@ void CGame::recalculation()
         {
             firstPlayerId = planetOwnerId;
         }
-        // ищем второго игрока
+        // looking for second player
         if ((planetOwnerId != 0) && (firstPlayerId != planetOwnerId))
         {
             endGameFlag = false;
@@ -165,11 +165,11 @@ void CGame::recalculation()
 
     if (endGameFlag)
     {
-        qDebug() << "Game over !!!!!!!!!!!!!!!!!!!!";
+        qDebug() << "GAME OVER !";
         emit SignalFinish();
     }
 
-    // удаляем игроков, которые проиграли
+    // remove players, who lose
     QMap<int, bool> players;
     foreach (int player, m_playerList)
     {
@@ -183,13 +183,13 @@ void CGame::recalculation()
     {
         if (!players[*iter])
         {
-            qDebug() << "DELETING PLAYER!!!!!!!!!!!!!!!!!!!!!!!!!";
+            qDebug() << "REMOVE PLAYER !";
             m_playerList.erase(iter);
         }
     }
 
     // not tested yet!!!
-    // удаляем флоты игроков, которые уже проиграли
+    // remove all fleets belonged players-losers
     for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end(); ++iter)
     {
         if (!m_planetList.contains(iter.value().GetPlayerId()))
@@ -200,7 +200,7 @@ void CGame::recalculation()
 
     QTime currentTime = QTime::currentTime();
 
-    // апдейтим состояния планет
+    // update all planets
     for (PlanetIterator iter = m_planetList.begin(); iter != m_planetList.end(); ++iter)
     {
         QTime planetStartTime = iter.value().GetStartTime();
@@ -217,7 +217,7 @@ void CGame::recalculation()
         int srcPlanetId = iter.value().GetSrcPlanetId();
         int dstPlanetId = iter.value().GetDstPlanetId();
 
-        // измененный процент пройденного пути
+        // calculate current percent for fleet
         QTime fleetStartTime = iter.value().GetStartTime();
         int dt = fleetStartTime.secsTo(currentTime);
         int currentDistance = dt * m_fleetSpeed;
@@ -226,15 +226,15 @@ void CGame::recalculation()
         iter.value().SetPercent(newPercent);
         if (newPercent >= 100)
         {
-            // устанавливаем новое стартовое время
+            // planet changed suddenly, so change start time
             m_planetList[dstPlanetId].SetStartTime(currentTime);
 
-            // изменяем состояние планеты
+            // change garrison size
             int planetGarnisonSize = m_planetList[dstPlanetId].GetFleetSize();
             int attackerFleetSize = iter.value().GetFleetSize();
 
-            // перебазирование флота между
-            // двумя планетами одного игрока
+            // rebase fleet between two
+            // planets of one player
             if (iter.value().GetPlayerId() == m_planetList[dstPlanetId].GetPlayerId())
             {
                 int newGarnisonSize = planetGarnisonSize + attackerFleetSize;
@@ -242,8 +242,8 @@ void CGame::recalculation()
                 m_planetList[dstPlanetId].SetStartFleetSize(newGarnisonSize);
             }
 
-            // атака на планету
-            // планета меняет владельца
+            // attack to planet
+            // planet changes its owner
             else if (planetGarnisonSize < attackerFleetSize)
             {
                 int attackerId = iter.value().GetPlayerId();
@@ -252,7 +252,7 @@ void CGame::recalculation()
                 m_planetList[dstPlanetId].SetFleetSize(newGarnisonSize);
                 m_planetList[dstPlanetId].SetStartFleetSize(newGarnisonSize);
             }
-            // на планете уменьшается размер гарнизона
+            // garrison size reduced
             else
             {
                 int newGarnisonSize = planetGarnisonSize - attackerFleetSize;
