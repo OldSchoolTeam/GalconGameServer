@@ -8,6 +8,7 @@ class CPlayer
 public:
     CPlayer(int, QString);
     QString ToString();
+    int GetId();
 
 private:
     int m_id;

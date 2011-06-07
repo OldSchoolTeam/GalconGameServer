@@ -6,6 +6,7 @@
 
 #include "Options.h"
 #include "Server.h"
+#include "Exception.h"
 
 int main(int argc, char *argv[])
 {
@@ -14,15 +15,21 @@ int main(int argc, char *argv[])
     // add server_port to options
     COptions options = COptions::Parse(QCoreApplication::arguments());
     qDebug() << "Server options:\n"
+             << "\tPort = " << options.GetPort() << "\n"
              << "\tMaxNumPlayers = " << options.GetMaxNumPlayer() << "\n"
              << "\tTimeOut = " << options.GetTimeOut() << "\n"
              << "\tTimeToStart = " << options.GetTimeToStart() << "\n";
 
-
     // add catch exceptions
-    CServer server(options);
-    server.Start();
-
+//    try
+//    {
+        CServer server(&options);
+        server.Start();
+//    }
+//    catch(CException *exc)
+//    {
+//        qDebug() << "ServerException::" << exc->GetDescription();
+//    }
 
     return a.exec();
 }

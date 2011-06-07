@@ -11,7 +11,7 @@ class CServer : public QTcpServer
     Q_OBJECT
 
 public:
-    CServer(COptions, QObject *parent=0);
+    CServer(COptions *, QObject *parent=0);
     bool Start();
 
 public slots:

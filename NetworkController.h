@@ -2,9 +2,12 @@
 #define CNETWORKCONTROLLER_H
 
 #include <QObject>
+#include <QTimer>
+//#include <QString>
 
 #include "Player.h"
 #include "Socket.h"
+#include "Parser.h"
 
 class CNetworkController : public QObject
 {
@@ -17,7 +20,7 @@ public:
 public slots:
     void SlotReadMsg();
     void SlotDeleteConnection();
-    void SlotSendConnId(int);
+    void SlotSendConnId(CConnMsg* );
     void SlotSendErr();
     void SlotSendFinish();
     void SlotSendStart();
@@ -26,14 +29,19 @@ public slots:
     void SlotStep();
 
 private:
+    void sentToAll(QString );
+
     //CGame* m_gameGalcon;
-    //CParser* m_parser;
+    bool gameIsStarted;
+    CParser* m_parser;
+    QTimer *m_timer;
     QList<CPlayer*> m_playerList;
     QList<CSocket*> m_socketList;
 
     QList<int> m_freeIdList;
 
     int m_timeToStart;
+    int timeToStart;
     int m_timeOut;
 
 signals:

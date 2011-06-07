@@ -4,7 +4,7 @@
 
 CSession::CSession(int i_timeToStart, int i_maxNumPlayer, int i_timeOut, QObject *parent) : QThread(parent)
 {
-    qDebug() << "Session: thread start\n";
+    qDebug() << "Session: thread start";
     controller = new CNetworkController(i_timeToStart, i_maxNumPlayer, i_timeOut);
     connect(controller, SIGNAL(sentQuit()), this, SLOT(slotFinish()));
 }
@@ -21,6 +21,6 @@ void CSession::run()
 
 void CSession::slotFinish()
 {
-    qDebug() << "Session: stop thread\n";
+    qDebug() << "Session: stop thread";
     quit();
 }

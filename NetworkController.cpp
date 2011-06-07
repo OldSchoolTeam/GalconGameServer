@@ -1,33 +1,79 @@
 #include <QDebug>
+#include <QDataStream>
 
 #include "NetworkController.h"
-#include <QDebug>
+#include "ParsingException.h"
 
 CNetworkController::CNetworkController(int i_timeToStart, int i_maxNumPlayer, int i_timeOut, QObject *parent ) : QObject(parent)
 {
     m_timeToStart = i_timeToStart;
     m_timeOut = i_timeOut;
-    for (int i=1; i<i_maxNumPlayer; ++i)
+    gameIsStarted = false;
+    for (int i=1; i<=i_maxNumPlayer; ++i)
     {
         m_freeIdList.append(i);
     }
+
+    m_timer = new QTimer();
+    connect(m_timer, SIGNAL(timeout()), this , SLOT(SlotSendTimeToStart()));
+    m_timer->start(1000);
+
+    m_parser = new CParser();
+    connect(m_parser, SIGNAL(signalMessageConn(CConnMsg* )), this, SLOT(SlotSendConnId(CConnMsg* )));
+    connect(m_parser, SIGNAL(signalStep(CStepMsg*)), this, SLOT(SlotSendState()));
 }
 
 void CNetworkController::SlotReadMsg()
 {
-    QTcpSocket *sckt = (QTcpSocket*)sender();
+    QTcpSocket *socket = (QTcpSocket*)sender();
     for ( QList<CSocket*>::iterator i = m_socketList.begin(); i != m_socketList.end(); ++i)
     {
-        if ( (*i)->GetSocket() == sckt )
+        if ( (*i)->GetSocket() == socket )
         {
-            //
-//            m_freeIdList.append((*i)->GetId() );
-//            int j = m_socketList.indexOf((*i));
-//            m_socketList.removeAt(j);
-//            qDebug() << "NetworkController: removed the socket\n";
+            QString strMessage;
+            quint16 m_nNextBlockSize = 0;
+            QDataStream in(socket);
+            in.setVersion(QDataStream::Qt_4_7);
+            for (;;) {
+               if (!m_nNextBlockSize) {
+                  if (socket->bytesAvailable() < sizeof(quint16)) {
+                     break;
+                  }
+                  in >> m_nNextBlockSize;
+               }
+
+               if (socket->bytesAvailable() < m_nNextBlockSize) {
+                  break;
+               }
+               QString str;
+               in >> str;
+
+               strMessage = str;
+               qDebug() << "NetworkController::read data from the socket: " << strMessage;
+
+               m_nNextBlockSize = 0;
+            }
+
+            try
+            {
+                m_parser->ParseMessage((*i)->GetId(), strMessage);
+            }
+            catch(CParsingException *exc)
+            {
+                qDebug() << "CParsingException::" << exc->GetDescription();
+            }
+
+//            QByteArray msg;
+//            QDataStream out(&msg, QIODevice::WriteOnly);
+
+//            out.setVersion(QDataStream::Qt_4_7);
+//            //out_stream << quint16(0) << QTime::currentTime() << ui->in_Text->toPlainText();
+//            out << quint16(0) << strMessage ;
+//            out.device()->seek(0);
+//            out << quint16(msg.size()-sizeof(quint16));
+//            socket->write(msg);
         }
     }
-    qDebug() << "NetworkController: read data from the socket\n";
 }
 
 bool CNetworkController::AddConnection(int i_socketDescriptor)
@@ -42,7 +88,8 @@ bool CNetworkController::AddConnection(int i_socketDescriptor)
         connect(tmp_socket->GetSocket(), SIGNAL(readyRead()), this, SLOT(SlotReadMsg()), Qt::DirectConnection);
         connect(tmp_socket->GetSocket(), SIGNAL(disconnected()), this, SLOT(SlotDeleteConnection()), Qt::DirectConnection);
         //connect(tmp_socket->GetSocket(), SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(SlotDeleteConnection()), Qt::DirectConnection);
-        qDebug() << "NetworkController: added new socket\n";
+        qDebug() << "NetworkController: added new socket";
+        timeToStart = m_timeToStart;
         return true;
     }
     else
@@ -59,19 +106,99 @@ void CNetworkController::SlotDeleteConnection()
         if ( (*i)->GetSocket() == sckt )
         {
             m_freeIdList.append((*i)->GetId() );
+            for (QList<CPlayer*>::iterator ipl = m_playerList.begin(); ipl != m_playerList.end(); ++ipl)
+            {
+                if ( (*ipl)->GetId() == (*i)->GetId() )
+                {
+                    m_playerList.removeAt(m_playerList.indexOf((*ipl)));
+                }
+            }
             m_socketList.removeAt(m_socketList.indexOf((*i)));
-            qDebug() << "NetworkController: removed the socket\n";
+            qDebug() << "NetworkController: removed the socket";
         }
     }
     if ( m_socketList.isEmpty() )
     {
+        qDebug() << "CNetworkController::size of m_socketList = " <<  m_socketList.size() << "\n\temit sentQuit()";
         emit sentQuit();
     }
 }
 
-void CNetworkController::SlotSendConnId(int)
+void CNetworkController::SlotSendConnId(CConnMsg* i_connMsg)
 {
-    //
+    qDebug() << "CNetworkController::SlotConnIdSend \n\t\t user " << i_connMsg->GetName() << " go to start game";
+    for ( QList<CSocket*>::iterator i = m_socketList.begin(); i != m_socketList.end(); ++i)
+    {
+        if ( (*i)->GetId() == i_connMsg->GetSenderId() )
+        {
+            QByteArray msg;
+            QDataStream out(&msg, QIODevice::WriteOnly);
+            out.setVersion(QDataStream::Qt_4_7);
+            out << quint16(0) << i_connMsg->ToConnIdString();
+            out.device()->seek(0);
+            out << quint16(msg.size()-sizeof(quint16));
+            (*i)->GetSocket()->write(msg);
+
+            CPlayer *pl = new CPlayer(i_connMsg->GetSenderId(), i_connMsg->GetName() );
+            m_playerList.append(pl);
+
+            timeToStart = m_timeToStart;
+        }
+    }
+}
+
+void CNetworkController::sentToAll(QString i_str)
+{
+    for ( QList<CSocket*>::iterator i = m_socketList.begin(); i != m_socketList.end(); ++i)
+    {
+        QByteArray msg;
+        QDataStream out(&msg, QIODevice::WriteOnly);
+        out.setVersion(QDataStream::Qt_4_7);
+        out << quint16(0) << i_str;
+        out.device()->seek(0);
+        out << quint16(msg.size()-sizeof(quint16));
+        (*i)->GetSocket()->write(msg);
+
+    }
+}
+
+void CNetworkController::SlotSendTimeToStart()
+{
+    if ( m_playerList.size() != 0 )
+    {
+        if ( m_playerList.size() == 1 )
+        {
+            sentToAll("SC_TIMETOSTART#0##");
+        }
+        else
+        {
+            if ( timeToStart != 0 )
+            {
+                QString timeToStartStr = QString("SC_TIMETOSTART#%1##").arg(timeToStart);
+                --timeToStart;
+                sentToAll(timeToStartStr);
+                if ( timeToStart == 0 )
+                {
+                    gameIsStarted = true;
+                    // create game ...
+                    // ... m_game = new CGame(list of player Id);
+                }
+            }
+            else
+            {
+                m_timer->stop();
+                disconnect(m_timer, SIGNAL(timeout()), this , SLOT(SlotSendTimeToStart()));
+                //
+                //
+                //SentStart();
+                //
+                //m_timer->start(m_timeOut);
+                //connect(m_timer, SIGNAL(timeout()), this , SLOT(SlotSendState()));
+            }
+
+
+        }
+    }
 }
 
 void CNetworkController::SlotSendErr()
@@ -91,12 +218,7 @@ void CNetworkController::SlotSendStart()
 
 void CNetworkController::SlotSendState()
 {
-    //
-}
-
-void CNetworkController::SlotSendTimeToStart()
-{
-    //
+    qDebug() << "CNetworkController::SlotSendState";
 }
 
 void CNetworkController::SlotStep()
