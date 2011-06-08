@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core network thread
+QT       += core network thread testlib
 
 QT       -= gui
 
@@ -27,7 +27,8 @@ SOURCES += main.cpp \
     ParsingException.cpp \
     ConnMsg.cpp \
     Exception.cpp \
-    Parser.cpp
+    Parser.cpp \
+    TestCParser.cpp
 
 HEADERS += \
 #    Game.h \
@@ -42,4 +43,5 @@ HEADERS += \
     Socket.h \
     Message.h \
     Exception.h \
-    Parser.h
+    Parser.h \
+    TestCParser.h
