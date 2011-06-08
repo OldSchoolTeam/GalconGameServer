@@ -25,6 +25,7 @@ CGame::CGame(QList<int> i_id)
     int yStart = rectHeight / 2;
 
     QTime currentTime = QTime::currentTime();
+    // here we need some changes
     for (int x = xStart; x < mapWidth; x+=rectWidth)
     {
         for (int y = yStart; y<mapHeight; y+=rectHeight)
@@ -167,6 +168,7 @@ void CGame::recalculation()
     {
         qDebug() << "GAME OVER !";
         emit SignalFinish();
+        m_runFlag = false;
     }
 
     // remove players, who lose
@@ -179,22 +181,30 @@ void CGame::recalculation()
     {
         players[iter->GetPlayerId()] = true;
     }
-    for (PlayerIterator iter = m_playerList.begin(); iter != m_playerList.end(); ++iter)
+    for (PlayerIterator iter = m_playerList.begin(); iter != m_playerList.end();/* ++iter*/)
     {
         if (!players[*iter])
         {
             qDebug() << "REMOVE PLAYER !";
             m_playerList.erase(iter);
         }
+        else
+        {
+            ++iter;
+        }
     }
 
     // not tested yet!!!
-    // remove all fleets belonged players-losers
-    for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end(); ++iter)
+    // remove all fleets belonged to players who lose
+    for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end();)
     {
         if (!m_planetList.contains(iter.value().GetPlayerId()))
         {
             m_fleetList.erase(iter);
+        }
+        else
+        {
+             ++iter;
         }
     }
 
@@ -226,7 +236,7 @@ void CGame::recalculation()
         iter.value().SetPercent(newPercent);
         if (newPercent >= 100)
         {
-            // planet changed suddenly, so change start time
+            // planet state changed suddenly, so change start time
             m_planetList[dstPlanetId].SetStartTime(currentTime);
 
             // change garrison size
@@ -262,9 +272,15 @@ void CGame::recalculation()
         }
     }
 
-    for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end(); ++iter)
+    for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end();)
     {
         if (iter.value().GetPercent() >= 100)
+        {
             m_fleetList.erase(iter);
+        }
+        else
+        {
+            ++iter;
+        }
     }
 }
