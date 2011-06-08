@@ -7,44 +7,62 @@
 CGame::CGame(QList<int> i_id)
 {
     m_playerList = i_id;
-
     m_fleetSpeed = 25;
     int mapWidth = 300, mapHeight = 200;
     int startFleetSize = 50;
     int startRadius = 1;
-    //int maxDeviationX = 3* mapWidth / 100, maxDeviationY = 3 * mapHeight / 100;
-
-    static int lastPlanetId = 1;
-    // map generation
-    int cPlayers = i_id.size();
-
-    int rectWidth = sqrt(1/(float)cPlayers) * mapWidth;
-    int rectHeight = sqrt(1/(float)cPlayers) * mapHeight;
-
-    int xStart = rectWidth / 2;
-    int yStart = rectHeight / 2;
-
-    QTime currentTime = QTime::currentTime();
-    // here we need some changes
-    for (int x = xStart; x < mapWidth; x+=rectWidth)
-    {
-        for (int y = yStart; y<mapHeight; y+=rectHeight)
-        {
-            if (!i_id.isEmpty())
-            {
-                CPlanet mainPlanet(lastPlanetId++, i_id.takeFirst(),
-                                   startFleetSize,
-                                   startRadius,
-                                   x, y);
-                mainPlanet.SetStartTime(currentTime);
-                m_planetList[mainPlanet.GetPlanetId()] = mainPlanet;
-            }
-            // generate other planets for this part
-            // ...
-        }
-    }
+    GenerateMap(i_id, mapWidth, mapHeight, startFleetSize, startRadius);
 
     m_runFlag = true;
+}
+
+void CGame::GenerateMap(QList<int> i_players, int i_width, int i_height,
+                        int i_startFleetSize, int i_startRadius)
+{
+    int centerX = i_width / 2;
+    int centerY = i_height / 2;
+    int playersCount = i_players.size();
+
+    int startPositionX;
+    int startPositionY;
+    if (i_width > i_height)
+    {
+        startPositionX = centerX;
+        startPositionY = centerY / 4;
+    }
+    else
+    {
+        startPositionX = centerX / 4;
+        startPositionY = centerY;
+    }
+
+    const float PI = 3.14;
+    static int lastPlanetId = 1;
+    QTime currentTime = QTime::currentTime();
+    float da = 2 * PI / playersCount;
+    float vecX = startPositionX - centerX;
+    float vecY = startPositionY - centerY;
+    qDebug() << vecX << ", " << vecY;
+    for (float angle = 0; angle < 2*PI; angle += da)
+    {
+        // rotate vector here
+        float curVx = vecX * cos(angle) - vecY * sin(angle);
+        float curVy = vecX * sin(angle) - vecY * cos(angle);
+        qDebug() << angle << ": " << curVx << ", " << curVy;
+        int x = curVx + centerX;
+        int y = curVy + centerY;
+
+        if (!i_players.empty())
+        {
+            qDebug() << "New planet: " << x << " " << y;
+            CPlanet mainPlanet(lastPlanetId++, i_players.takeFirst(),
+                               i_startFleetSize,
+                               i_startRadius,
+                               x, y);
+            mainPlanet.SetStartTime(currentTime);
+            m_planetList[mainPlanet.GetPlanetId()] = mainPlanet;
+        }
+    }
 }
 
 CStateMsg CGame::AddStep(CStepMsg *i_step)
