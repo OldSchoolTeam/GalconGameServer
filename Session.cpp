@@ -16,6 +16,7 @@ bool CSession::AddClient(int i_socketDescriptor)
 
 void CSession::run()
 {
+    qDebug() << "CSession::run()";
     exec();
 }
 

@@ -3,6 +3,9 @@
 
 #include "NetworkController.h"
 #include "ParsingException.h"
+//#include "Game.h"
+//#include "StartMsg.h"
+#include "StateMsg.h"
 
 CNetworkController::CNetworkController(int i_timeToStart, int i_maxNumPlayer, int i_timeOut, QObject *parent ) : QObject(parent)
 {
@@ -20,7 +23,7 @@ CNetworkController::CNetworkController(int i_timeToStart, int i_maxNumPlayer, in
 
     m_parser = new CParser();
     connect(m_parser, SIGNAL(signalMessageConn(CConnMsg* )), this, SLOT(SlotSendConnId(CConnMsg* )));
-    connect(m_parser, SIGNAL(signalStep(CStepMsg*)), this, SLOT(SlotSendState()));
+    connect(m_parser, SIGNAL(signalStep(CStepMsg*)), this, SLOT(SlotStep(CStepMsg*)));
 }
 
 void CNetworkController::SlotReadMsg()
@@ -45,11 +48,12 @@ void CNetworkController::SlotReadMsg()
                if (socket->bytesAvailable() < m_nNextBlockSize) {
                   break;
                }
-               QString str;
+               //QString str;
+               QByteArray str;
                in >> str;
 
                strMessage = str;
-               qDebug() << "NetworkController::read data from the socket: " << strMessage;
+               qDebug() << "NetworkController::read data from the socket: " << strMessage.toUtf8();
 
                m_nNextBlockSize = 0;
             }
@@ -78,7 +82,7 @@ void CNetworkController::SlotReadMsg()
 
 bool CNetworkController::AddConnection(int i_socketDescriptor)
 {
-    if ( !m_freeIdList.isEmpty() )
+    if ( !gameIsStarted && !m_freeIdList.isEmpty() )
     {
         int id = m_freeIdList.first();
         m_freeIdList.pop_front();
@@ -100,21 +104,26 @@ bool CNetworkController::AddConnection(int i_socketDescriptor)
 
 void CNetworkController::SlotDeleteConnection()
 {
+    qDebug() << "CNetworkController::SlotDeleteConnection";
     QTcpSocket *sckt = (QTcpSocket*)sender();
     for ( QList<CSocket*>::iterator i = m_socketList.begin(); i != m_socketList.end(); ++i)
     {
         if ( (*i)->GetSocket() == sckt )
         {
-            m_freeIdList.append((*i)->GetId() );
+            qDebug() << "( (*i)->GetSocket() == sckt )";
+            m_freeIdList.append( (*i)->GetId() );
             for (QList<CPlayer*>::iterator ipl = m_playerList.begin(); ipl != m_playerList.end(); ++ipl)
             {
                 if ( (*ipl)->GetId() == (*i)->GetId() )
                 {
-                    m_playerList.removeAt(m_playerList.indexOf((*ipl)));
+                    qDebug() << "start/  m_playerList.erase(ipl);";
+                    //m_playerList.erase(ipl);
+                    //qDebug() << "end/    m_playerList.erase(ipl);";
                 }
             }
-            m_socketList.removeAt(m_socketList.indexOf((*i)));
-            qDebug() << "NetworkController: removed the socket";
+            qDebug() << "m_socketList.erase(i)";
+            //m_socketList.erase(i);
+            //qDebug() << "NetworkController: removed the socket";
         }
     }
     if ( m_socketList.isEmpty() )
@@ -126,7 +135,7 @@ void CNetworkController::SlotDeleteConnection()
 
 void CNetworkController::SlotSendConnId(CConnMsg* i_connMsg)
 {
-    qDebug() << "CNetworkController::SlotConnIdSend \n\t\t user " << i_connMsg->GetName() << " go to start game";
+    qDebug() << "CNetworkController::SlotConnIdSend \n\t\t user " << i_connMsg->GetName().toUtf8() << " go to start game";
     for ( QList<CSocket*>::iterator i = m_socketList.begin(); i != m_socketList.end(); ++i)
     {
         if ( (*i)->GetId() == i_connMsg->GetSenderId() )
@@ -134,7 +143,7 @@ void CNetworkController::SlotSendConnId(CConnMsg* i_connMsg)
             QByteArray msg;
             QDataStream out(&msg, QIODevice::WriteOnly);
             out.setVersion(QDataStream::Qt_4_7);
-            out << quint16(0) << i_connMsg->ToConnIdString();
+            out << quint16(0) << i_connMsg->ToConnIdString().toUtf8();
             out.device()->seek(0);
             out << quint16(msg.size()-sizeof(quint16));
             (*i)->GetSocket()->write(msg);
@@ -154,7 +163,7 @@ void CNetworkController::sentToAll(QString i_str)
         QByteArray msg;
         QDataStream out(&msg, QIODevice::WriteOnly);
         out.setVersion(QDataStream::Qt_4_7);
-        out << quint16(0) << i_str;
+        out << quint16(0) << i_str.toUtf8();
         out.device()->seek(0);
         out << quint16(msg.size()-sizeof(quint16));
         (*i)->GetSocket()->write(msg);
@@ -180,48 +189,51 @@ void CNetworkController::SlotSendTimeToStart()
                 if ( timeToStart == 0 )
                 {
                     gameIsStarted = true;
-                    // create game ...
-                    // ... m_game = new CGame(list of player Id);
+                    m_gameGalcon = new CGame(m_playerList);
+                    connect(m_gameGalcon, SIGNAL(SignalStart(CStartMsg*)), this, SLOT(SlotSendStart(CStartMsg*)),Qt::DirectConnection);
+                    connect(m_gameGalcon, SIGNAL(SignalFinish(CFinishMsg*)), this, SLOT(SlotSendFinish(CFinishMsg*)), Qt::DirectConnection);
+                    m_gameGalcon->start();
                 }
             }
             else
             {
                 m_timer->stop();
                 disconnect(m_timer, SIGNAL(timeout()), this , SLOT(SlotSendTimeToStart()));
-                //
-                //
-                //SentStart();
-                //
-                //m_timer->start(m_timeOut);
-                //connect(m_timer, SIGNAL(timeout()), this , SLOT(SlotSendState()));
+                m_timer->start(m_timeOut);
+                connect(m_timer, SIGNAL(timeout()), this , SLOT(SlotSendState()));
             }
-
-
         }
     }
 }
 
 void CNetworkController::SlotSendErr()
 {
-    //
+    //sentToAll(stateStr.ToString());
 }
 
-void CNetworkController::SlotSendFinish()
+void CNetworkController::SlotSendFinish(CFinishMsg *i_msg)
 {
-    //
+    sentToAll(i_msg->ToString());
+    disconnect(m_timer, SIGNAL(timeout()), this , SLOT(SlotSendState()));
 }
 
-void CNetworkController::SlotSendStart()
+void CNetworkController::SlotSendStart(CStartMsg *i_msg)
 {
-    //
+    qDebug() << "CNetworkController::SlotSendStart(CStartMsg *i_msg)";
+    sentToAll(i_msg->ToString());
 }
 
 void CNetworkController::SlotSendState()
 {
-    qDebug() << "CNetworkController::SlotSendState";
+    CStateMsg stateStr = m_gameGalcon->GetState();
+    qDebug() << "CNetworkController::SlotSendState\n\t\t" << stateStr.ToString();
+    sentToAll(stateStr.ToString());
 }
 
-void CNetworkController::SlotStep()
+void CNetworkController::SlotStep(CStepMsg *i_msg)
 {
-    //
+    qDebug() << "CNetworkController::SlotStep start";
+    CStateMsg state = m_gameGalcon->AddStep(i_msg);
+    qDebug() << "CNetworkController::SlotStep sent to all";
+    sentToAll(state.ToString());
 }

@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core network thread testlib
+QT       += core network thread
 
 QT       -= gui
 
@@ -16,7 +16,7 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp \
-#    Game.cpp \
+    Game.cpp \
     NetworkController.cpp \
     Options.cpp \
     Player.cpp \
@@ -28,10 +28,14 @@ SOURCES += main.cpp \
     ConnMsg.cpp \
     Exception.cpp \
     Parser.cpp \
-    TestCParser.cpp
+    StateMsg.cpp \
+    Planet.cpp \
+    Fleet.cpp \
+    StartMsg.cpp \
+    FinishMsg.cpp
 
 HEADERS += \
-#    Game.h \
+    Game.h \
     NetworkController.h \
     StepMsg.h \
     ParsingException.h \
@@ -44,4 +48,8 @@ HEADERS += \
     Message.h \
     Exception.h \
     Parser.h \
-    TestCParser.h
+    StateMsg.h \
+    Planet.h \
+    Fleet.h \
+    StartMsg.h \
+    FinishMsg.h

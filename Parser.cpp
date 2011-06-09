@@ -12,12 +12,12 @@
 // in what place checking for
 // pattern matching fails
 void CParser::ParseMessage(int i_senderId, QString i_str) throw(CParsingException*)
-{
+{        
     QRegExp messagePattern("(CS_STEP|CS_CONN)#(.*)##");
     if (messagePattern.exactMatch(i_str))
     {
         QString msgType = messagePattern.cap(1);
-        QString msgParams = messagePattern.cap(2);
+        QString msgParams = messagePattern.cap(2);        
         QRegExp msgParamsPattern;
         if (msgType == "CS_STEP")
         {
@@ -30,7 +30,7 @@ void CParser::ParseMessage(int i_senderId, QString i_str) throw(CParsingExceptio
                                         "("+numberPatternStr+")"+"#"+
                                         "("+numberPatternStr+")");
             if (msgParamsPattern.exactMatch(msgParams))
-            {
+            {                
                 QString srcPlanetListStr = msgParamsPattern.cap(1);
 
                 // list of planets - sequence of numbers,
@@ -38,7 +38,7 @@ void CParser::ParseMessage(int i_senderId, QString i_str) throw(CParsingExceptio
                 QRegExp planetListPattern("(\\("+numberPatternStr+"\\))+");
                 QList<int> srcPlanetsId;
                 if (planetListPattern.exactMatch(srcPlanetListStr))
-                {
+                {                                        
                     srcPlanetListStr.remove(0, 1);
                     srcPlanetListStr.remove(srcPlanetListStr.length()-1, 1);
 
@@ -56,22 +56,22 @@ void CParser::ParseMessage(int i_senderId, QString i_str) throw(CParsingExceptio
                 else
                 {
                     throw new CParsingException("CS_STEP: incorrect source planet list");
-                }
+                }                
                 QString percentStr = msgParamsPattern.cap(2);
                 int percent = percentStr.toInt();
                 if (percent > 100)
-                {
+                {                   
                     throw new CParsingException("CS_STEP: Fleet percent greater than 100");
                 }
 
                 QString dstPlanetStr = msgParamsPattern.cap(3);
                 int dstPlanet = dstPlanetStr.toInt();
                 if (dstPlanet > 80)
-                {
+                {                    
                     throw new CParsingException("CS_STEP: Destination planet id greater than 80");
                 }
 
-                emit signalStep(new CStepMsg(srcPlanetsId, percent, dstPlanet));
+                emit signalStep(new CStepMsg(srcPlanetsId, percent, dstPlanet, i_senderId));
             }
             else
             {
@@ -82,19 +82,20 @@ void CParser::ParseMessage(int i_senderId, QString i_str) throw(CParsingExceptio
         else
         if (msgType == "CS_CONN")
         {
-            QString stringPatternStr("[A-Za-zР-пр-џ0-9 +-*<>=!;%?.,()/\\[\\]]{0,256}");
+            //QString stringPatternStr("[A-Za-z?-??-?0-9 +-*<>=!;%?.,()/\\[\\]]{0,256}");
+            QString stringPatternStr("[A-Za-z0-9 +-*<>=!;%?.,()/\\[\\]]{0,256}");
             msgParamsPattern.setPattern(stringPatternStr);
             if (msgParamsPattern.exactMatch(msgParams))
-            {
+            {                               
                 emit signalMessageConn(new CConnMsg(i_senderId, msgParams));
             }
             else
-            {
+            {                
                 throw new CParsingException("CS_CONN: invalid nickname");
             }
         }
         else
-        {
+        {            
             // if we are here, then something wrong
             throw new CParsingException("No such message");
         }

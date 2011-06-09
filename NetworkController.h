@@ -8,6 +8,9 @@
 #include "Player.h"
 #include "Socket.h"
 #include "Parser.h"
+#include "Game.h"
+#include "FinishMsg.h"
+#include "StepMsg.h"
 
 class CNetworkController : public QObject
 {
@@ -22,16 +25,16 @@ public slots:
     void SlotDeleteConnection();
     void SlotSendConnId(CConnMsg* );
     void SlotSendErr();
-    void SlotSendFinish();
-    void SlotSendStart();
+    void SlotSendFinish(CFinishMsg*);
+    void SlotSendStart(CStartMsg*);
     void SlotSendState();
     void SlotSendTimeToStart();
-    void SlotStep();
+    void SlotStep(CStepMsg *);
 
 private:
     void sentToAll(QString );
 
-    //CGame* m_gameGalcon;
+    CGame* m_gameGalcon;
     bool gameIsStarted;
     CParser* m_parser;
     QTimer *m_timer;

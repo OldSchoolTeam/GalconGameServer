@@ -9,6 +9,7 @@ public:
     CPlayer(int, QString);
     QString ToString();
     int GetId();
+    QString GetName();
 
 private:
     int m_id;

@@ -3,9 +3,9 @@
 COptions::COptions()
 {
     m_port = 5678;
-    m_timeToStart = 10;
-    m_maxNumPlayer = 8;
-    m_timeOut = 1;
+    m_timeToStart = 5;
+    m_maxNumPlayer = 3;
+    m_timeOut = 1000;
 }
 
 COptions COptions::Parse(QStringList i_args)

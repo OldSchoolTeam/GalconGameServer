@@ -16,3 +16,8 @@ int CPlayer::GetId()
 {
     return m_id;
 }
+
+QString CPlayer::GetName()
+{
+    return m_name;
+}
