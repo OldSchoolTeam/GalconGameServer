@@ -93,7 +93,7 @@ void CGame::GenerateMap(QList<CPlayer*> i_players, int i_width, int i_height,
             int neutralY = (neutralVy + centerY);
 
             srand(rand());
-            int neutralR = 10.0 * rand() / RAND_MAX;
+            int neutralR = 10.0 * rand() / RAND_MAX + 1;
             int neutralStartFleetSize = 20 * ((float)rand() / RAND_MAX)+15;
             qDebug() << "fleet size: " << neutralStartFleetSize;
             qDebug() << "New neutral planet: " << neutralX << " " << neutralY;

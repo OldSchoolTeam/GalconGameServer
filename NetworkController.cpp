@@ -5,7 +5,7 @@
 #include "ParsingException.h"
 //#include "Game.h"
 //#include "StartMsg.h"
-#include "StateMsg.h"
+//#include "StateMsg.h"
 
 CNetworkController::CNetworkController(int i_timeToStart, int i_maxNumPlayer, int i_timeOut, QObject *parent ) : QObject(parent)
 {
@@ -26,57 +26,43 @@ CNetworkController::CNetworkController(int i_timeToStart, int i_maxNumPlayer, in
     connect(m_parser, SIGNAL(signalStep(CStepMsg*)), this, SLOT(SlotStep(CStepMsg*)));
 }
 
+//!
 void CNetworkController::SlotReadMsg()
 {
-    QTcpSocket *socket = (QTcpSocket*)sender();
-    for ( QList<CSocket*>::iterator i = m_socketList.begin(); i != m_socketList.end(); ++i)
+    // data sender
+    CSocket *socket = (CSocket*)sender();
+
+    quint16 m_nNextBlockSize = 0;
+    QString strMessage;
+    QDataStream in(socket);
+    in.setVersion(QDataStream::Qt_4_7);
+    for (;;) {
+       if (!m_nNextBlockSize) {
+          if (socket->bytesAvailable() < sizeof(quint16)) {
+             break;
+          }
+          in >> m_nNextBlockSize;
+       }
+
+       if (socket->bytesAvailable() < m_nNextBlockSize) {
+          break;
+       }
+
+       QByteArray str;
+       in >> str;
+
+       strMessage = str;
+       qDebug() << "NetworkController::read data from the socket: " << strMessage.toUtf8();
+
+       m_nNextBlockSize = 0;
+    }
+    try
     {
-        if ( (*i)->GetSocket() == socket )
-        {
-            QString strMessage;
-            quint16 m_nNextBlockSize = 0;
-            QDataStream in(socket);
-            in.setVersion(QDataStream::Qt_4_7);
-            for (;;) {
-               if (!m_nNextBlockSize) {
-                  if (socket->bytesAvailable() < sizeof(quint16)) {
-                     break;
-                  }
-                  in >> m_nNextBlockSize;
-               }
-
-               if (socket->bytesAvailable() < m_nNextBlockSize) {
-                  break;
-               }
-               //QString str;
-               QByteArray str;
-               in >> str;
-
-               strMessage = str;
-               qDebug() << "NetworkController::read data from the socket: " << strMessage.toUtf8();
-
-               m_nNextBlockSize = 0;
-            }
-
-            try
-            {
-                m_parser->ParseMessage((*i)->GetId(), strMessage);
-            }
-            catch(CParsingException *exc)
-            {
-                qDebug() << "CParsingException::" << exc->GetDescription();
-            }
-
-//            QByteArray msg;
-//            QDataStream out(&msg, QIODevice::WriteOnly);
-
-//            out.setVersion(QDataStream::Qt_4_7);
-//            //out_stream << quint16(0) << QTime::currentTime() << ui->in_Text->toPlainText();
-//            out << quint16(0) << strMessage ;
-//            out.device()->seek(0);
-//            out << quint16(msg.size()-sizeof(quint16));
-//            socket->write(msg);
-        }
+        m_parser->ParseMessage(socket->GetId(), strMessage);
+    }
+    catch(CParsingException *exc)
+    {
+        qDebug() << "CParsingException::" << exc->GetDescription();
     }
 }
 
@@ -86,12 +72,13 @@ bool CNetworkController::AddConnection(int i_socketDescriptor)
     {
         int id = m_freeIdList.first();
         m_freeIdList.pop_front();
-        CSocket *tmp_socket = new CSocket(i_socketDescriptor,id);
+        CSocket *tmp_socket = new CSocket(/*i_socketDescriptor,*/id);
+        tmp_socket->setSocketDescriptor(i_socketDescriptor);
         m_socketList.append(tmp_socket);
 
-        connect(tmp_socket->GetSocket(), SIGNAL(readyRead()), this, SLOT(SlotReadMsg()), Qt::DirectConnection);
-        connect(tmp_socket->GetSocket(), SIGNAL(disconnected()), this, SLOT(SlotDeleteConnection()), Qt::DirectConnection);
-        //connect(tmp_socket->GetSocket(), SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(SlotDeleteConnection()), Qt::DirectConnection);
+        connect(tmp_socket/*->GetSocket()*/, SIGNAL(readyRead()), this, SLOT(SlotReadMsg()));//, Qt::DirectConnection);
+        connect(tmp_socket/*->GetSocket()*/, SIGNAL(disconnected()), this, SLOT(SlotDeleteConnection())) ;//, Qt::DirectConnection);
+        //connect(tmp_socket/*->GetSocket()*/, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(SlotDeleteConnection()), Qt::DirectConnection);
         qDebug() << "NetworkController: added new socket";
         timeToStart = m_timeToStart;
         return true;
@@ -105,10 +92,10 @@ bool CNetworkController::AddConnection(int i_socketDescriptor)
 void CNetworkController::SlotDeleteConnection()
 {
     qDebug() << "CNetworkController::SlotDeleteConnection";
-    QTcpSocket *sckt = (QTcpSocket*)sender();
+    QAbstractSocket *sckt = (QAbstractSocket*)sender();
     for ( QList<CSocket*>::iterator i = m_socketList.begin(); i != m_socketList.end(); ++i)
     {
-        if ( (*i)->GetSocket() == sckt )
+        if ( (*i)/*->GetSocket()*/ == sckt )
         {
             qDebug() << "( (*i)->GetSocket() == sckt )";
             m_freeIdList.append( (*i)->GetId() );
@@ -140,13 +127,7 @@ void CNetworkController::SlotSendConnId(CConnMsg* i_connMsg)
     {
         if ( (*i)->GetId() == i_connMsg->GetSenderId() )
         {
-            QByteArray msg;
-            QDataStream out(&msg, QIODevice::WriteOnly);
-            out.setVersion(QDataStream::Qt_4_7);
-            out << quint16(0) << i_connMsg->ToConnIdString().toUtf8();
-            out.device()->seek(0);
-            out << quint16(msg.size()-sizeof(quint16));
-            (*i)->GetSocket()->write(msg);
+            (*i)->SendMsg(i_connMsg->ToConnIdString());
 
             CPlayer *pl = new CPlayer(i_connMsg->GetSenderId(), i_connMsg->GetName() );
             m_playerList.append(pl);
@@ -158,16 +139,9 @@ void CNetworkController::SlotSendConnId(CConnMsg* i_connMsg)
 
 void CNetworkController::sentToAll(QString i_str)
 {
-    for ( QList<CSocket*>::iterator i = m_socketList.begin(); i != m_socketList.end(); ++i)
+    for ( QList<CSocket *>::Iterator i = m_socketList.begin(); i != m_socketList.end(); ++i)
     {
-        QByteArray msg;
-        QDataStream out(&msg, QIODevice::WriteOnly);
-        out.setVersion(QDataStream::Qt_4_7);
-        out << quint16(0) << i_str.toUtf8();
-        out.device()->seek(0);
-        out << quint16(msg.size()-sizeof(quint16));
-        (*i)->GetSocket()->write(msg);
-
+        (*i)->SendMsg(i_str);
     }
 }
 
