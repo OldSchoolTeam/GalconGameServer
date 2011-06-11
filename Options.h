@@ -1,11 +1,7 @@
 #ifndef COPTION_H
 #define COPTION_H
 
-#include <QMap>
-#include <QRegExp>
 #include <QStringList>
-#include <QString>
-#include <QDebug>
 
 // Class for parsing
 // cmd parameters
@@ -24,6 +20,8 @@ public:
     void SetTimeOut(int i_timeOut);
     void SetPort(int i_port);
 
+    void PrintOptions();
+
     static COptions Parse(QStringList i_args);
 
 private:
@@ -31,7 +29,7 @@ private:
 
     int m_timeToStart;
     int m_maxNumPlayer;
-    int m_timeOut;
+    int m_timeOut;      // time in milliseconds
     int m_port;
 };
 

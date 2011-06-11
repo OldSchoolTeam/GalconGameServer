@@ -189,6 +189,8 @@ void CNetworkController::SlotSendFinish(CFinishMsg *i_msg)
 {
     sentToAll(i_msg->ToString());
     disconnect(m_timer, SIGNAL(timeout()), this , SLOT(SlotSendState()));
+    sleep(2);
+    emit sentQuit();
 }
 
 void CNetworkController::SlotSendStart(CStartMsg *i_msg)

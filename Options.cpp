@@ -1,10 +1,16 @@
+#include <QRegExp>
+#include <QStringList>
+#include <QString>
+#include <QDebug>
+
 #include "Options.h"
 
 COptions::COptions()
 {
+    // default settings
     m_port = 5678;
-    m_timeToStart = 5;
-    m_maxNumPlayer = 3;
+    m_timeToStart = 10;
+    m_maxNumPlayer = 8;
     m_timeOut = 1000;
 }
 
@@ -22,17 +28,13 @@ COptions COptions::Parse(QStringList i_args)
     QString argsStr = i_args.join(" ");
 
     // one pattern - one cmd parameter
-
     QRegExp timeToStartPattern("(TimeToStart[ ]*=[ ]*([1-9][0-9]*)[ ]*)");
     if (timeToStartPattern.indexIn(argsStr) != -1)
     {
         QString total = timeToStartPattern.cap(1);
         expectedLength += total.length();
 
-        qDebug() << "total: " << total;
         QString timeToStart = timeToStartPattern.cap(2);
-        qDebug() << "timeToStart: " << timeToStart;
-//        qDebug() << "maxNumPlayer: " << maxPlayer;
         result.SetTimeToStart(timeToStart.toInt());
     }
 
@@ -42,9 +44,7 @@ COptions COptions::Parse(QStringList i_args)
         QString total = maxPlayerPattern.cap(1);
         expectedLength += total.length();
 
-        qDebug() << "total: " << total;
         QString maxPlayer = maxPlayerPattern.cap(2);
-        qDebug() << "maxNumPlayer: " << maxPlayer;
         result.SetMaxNumPlayer(maxPlayer.toInt());
     }
 
@@ -54,9 +54,7 @@ COptions COptions::Parse(QStringList i_args)
         QString total = timeOutPattern.cap(1);
         expectedLength += total.length();
 
-        qDebug() << "total: " << total;
         QString timeOut = timeOutPattern.cap(2);
-        qDebug() << "timeOut: " << timeOut;
         result.SetTimeOut(timeOut.toInt());
     }
 
@@ -66,20 +64,13 @@ COptions COptions::Parse(QStringList i_args)
         QString total = portPattern.cap(1);
         expectedLength += total.length();
 
-        qDebug() << "total: " << total;
         int port = portPattern.cap(2).toInt();
-
-        // check port number < 65...
-        // ...
-
-        qDebug() << port;
         result.SetPort(port);
     }
 
     // if total length of args not equal to expected => error
     if (expectedLength != argsStr.length())
     {
-        qDebug() << "Printing help";
         PrintHelp();
     }
 
@@ -89,9 +80,19 @@ COptions COptions::Parse(QStringList i_args)
 void COptions::PrintHelp()
 {
     qDebug() << "Problem with cmd arguments";
-    qDebug() << "TimeOut=<value>";
+    qDebug() << "Port=<value>";
+    qDebug() << "TimeOut(in milliseconds)=<value>";
     qDebug() << "MaxNumPlayer=<value>";
-    qDebug() << "TimeToStart=<value>";
+    qDebug() << "TimeToStart(in seconds)=<value>";
+}
+
+void COptions::PrintOptions()
+{
+    qDebug() << "Server options:";
+    qDebug() << "\tPort = " << m_port;
+    qDebug() << "\tMaxNumPlayer = " << m_maxNumPlayer;
+    qDebug() << "\tTimeOut = " << m_timeOut;
+    qDebug() << "\tTimeToStart = " << m_timeToStart;
 }
 
 int COptions::GetMaxNumPlayer()

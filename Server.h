@@ -18,7 +18,7 @@ public slots:
     void SlotRemoveSession();
 
 protected:
-    void incomingConnection(int);
+    void incomingConnection(int );
 
 private:
     QList<CSession*> m_sessionList;

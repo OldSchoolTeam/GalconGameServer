@@ -21,7 +21,6 @@ bool CServer::Start()
     {
         qDebug() << "Server: " << errorString();
         close();
-        // throw CServerException(errorString());
     }
     qDebug() << "Server: start";
     return true;
@@ -29,11 +28,10 @@ bool CServer::Start()
 
 void CServer::incomingConnection(int i_socketDescriptor)
 {
-    qDebug() << "CServer::incomingConnection";
+    //qDebug() << "CServer::incomingConnection";
     if ( ( m_currentSession == 0 ) || ( !m_currentSession->AddClient(i_socketDescriptor) ) )
     {
-        qDebug() << "CServer::create new CSession";
-        //m_currentSession = 0;
+        qDebug() << "Server: create new CSession";
         m_currentSession = new CSession(m_options->GetTimeToStart(), m_options->GetMaxNumPlayer(), m_options->GetTimeOut(), this);
         connect(m_currentSession, SIGNAL(finished()), this, SLOT(SlotRemoveSession()), Qt::DirectConnection);
         m_sessionList.append(m_currentSession);
@@ -44,7 +42,10 @@ void CServer::incomingConnection(int i_socketDescriptor)
 
 void CServer::SlotRemoveSession()
 {
-    qDebug() << "CServer::SlotRemoveSession()";
+    qDebug() << "Server::SlotRemoveSession() start";
     CSession *deletingSession = qobject_cast<CSession*>(sender());
+    //m_sessionList.removeAt(m_sessionList.indexOf(deletingSession));
+    deletingSession->deleteLater();
     m_sessionList.removeAt(m_sessionList.indexOf(deletingSession));
+    qDebug() << "Server::SlotRemoveSession() exit";
 }
