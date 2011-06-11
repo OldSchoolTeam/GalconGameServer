@@ -11,7 +11,12 @@ class CSession : public QThread
     Q_OBJECT
 
 public:
-    CSession(int i_timeToStart, int i__maxNumPlayer, int i_timeOut, QObject *parent = 0);
+    CSession(int i_timeToStart,
+             int i__maxNumPlayer,
+             int i_timeOut,
+             QObject *parent = 0);
+    ~CSession();
+
     bool AddClient(int i_socketDescriptor);
     void run();
 
@@ -24,7 +29,7 @@ private slots:
     void slotFinish();
 
 private:
-    CNetworkController *controller;
+    CNetworkController *m_controller;
 };
 
 #endif // CSESSION_H
