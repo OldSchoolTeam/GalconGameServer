@@ -296,12 +296,12 @@ void CGame::recalculation()
     }
 
     qDebug() << "03";
-    for (PlayerIterator iter = m_playerList.begin(); iter != m_playerList.end(); ++iter)
+    for (PlayerIterator iter = m_playerList.begin(); iter != m_playerList.end(); /*++iter*/)
     {
         if (!players[(*iter)->GetId()])
         {
             qDebug() << "REMOVE PLAYER !";
-            m_playerList.erase(iter);
+            iter = m_playerList.erase(iter);
         }
 //        else
 //        {
@@ -313,16 +313,16 @@ void CGame::recalculation()
     // remove all fleets belonged players-losers
 
     qDebug() << "04";
-    for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end(); ++iter)
+    for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end();/* ++iter*/)
     {
         if (!m_planetList.contains(iter.value().GetPlayerId()))
         {
             m_fleetList.erase(iter);
         }
-//        else
-//        {
-//            ++iter;
-//        }
+        else
+        {
+            ++iter;
+        }
     }
 
     QTime currentTime = QTime::currentTime();
