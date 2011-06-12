@@ -32,7 +32,8 @@ SOURCES += main.cpp \
     Planet.cpp \
     Fleet.cpp \
     StartMsg.cpp \
-    FinishMsg.cpp
+    FinishMsg.cpp \
+    TimeToStartMsg.cpp
 
 HEADERS += \
     Game.h \
@@ -52,4 +53,5 @@ HEADERS += \
     Planet.h \
     Fleet.h \
     StartMsg.h \
-    FinishMsg.h
+    FinishMsg.h \
+    TimeToStartMsg.h

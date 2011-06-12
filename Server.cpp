@@ -46,12 +46,13 @@ void CServer::incomingConnection(int i_socketDescriptor)
 
 void CServer::SlotRemoveSession()
 {
-    CSession *deletingSession = qobject_cast<CSession*>(sender());
+    CSession *deletingSession = qobject_cast<CSession *> (sender());//(CSession*)sender();
     m_sessionList.removeAt(m_sessionList.indexOf(deletingSession));
+    deletingSession->deleteLater();
     if ( deletingSession == m_currentSession )
     {
         m_currentSession = 0;
     }
-    deletingSession->deleteLater();
+
     qDebug() << "Server: removed the thread of game session";
 }

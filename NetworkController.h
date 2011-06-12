@@ -3,7 +3,6 @@
 
 #include <QObject>
 #include <QTimer>
-//#include <QString>
 
 #include "Player.h"
 #include "Socket.h"
@@ -17,14 +16,18 @@ class CNetworkController : public QObject
     Q_OBJECT
 
 public:
-    CNetworkController(int i_timeToStart, int i_maxNumPlayer, int i_timeOut, QObject *parent = 0);
+    CNetworkController(int i_timeToStart,
+                       int i_maxNumPlayer,
+                       int i_timeOut,
+                       QObject *parent = 0);
+    ~CNetworkController();
     bool AddConnection(int);
 
 public slots:
     void SlotReadMsg();
     void SlotDeleteConnection();
     void SlotSendConnId(CConnMsg* );
-    void SlotSendErr();
+    //void SlotSendErr();
     void SlotSendFinish(CFinishMsg*);
     void SlotSendStart(CStartMsg*);
     void SlotSendState();
@@ -35,16 +38,19 @@ private:
     void sentToAll(QString );
 
     CGame* m_gameGalcon;
-    bool gameIsStarted;
     CParser* m_parser;
     QTimer *m_timer;
+
     QList<CPlayer*> m_playerList;
     QList<CSocket*> m_socketList;
 
     QList<int> m_freeIdList;
 
-    int m_timeToStart;
-    int timeToStart;
+    // true - game started
+    bool gameIsStarted;
+
+    int m_timeToStart;  // etalon time
+    int timeToStart;    // var time
     int m_timeOut;
 
 signals:

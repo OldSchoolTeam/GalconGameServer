@@ -10,11 +10,6 @@ int CSocket::GetId()
     return m_id;
 }
 
-void CSocket::SetId(int i_id)
-{
-    m_id = i_id;
-}
-
 void CSocket::SendMsg(QString i_msg)
 {
     QByteArray msg;
