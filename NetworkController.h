@@ -27,7 +27,6 @@ public slots:
     void SlotReadMsg();
     void SlotDeleteConnection();
     void SlotSendConnId(CConnMsg* );
-    //void SlotSendErr();
     void SlotSendFinish(CFinishMsg*);
     void SlotSendStart(CStartMsg*);
     void SlotSendState();

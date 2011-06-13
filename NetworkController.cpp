@@ -26,9 +26,11 @@ CNetworkController::CNetworkController(int i_timeToStart,
 
     m_parser = new CParser();
     connect(m_parser, SIGNAL(signalMessageConn(CConnMsg* )),
-            this, SLOT(SlotSendConnId(CConnMsg* )));
+            this, SLOT(SlotSendConnId(CConnMsg* )),
+            Qt::QueuedConnection);
     connect(m_parser, SIGNAL(signalStep(CStepMsg*)),
-            this, SLOT(SlotStep(CStepMsg*)));
+            this, SLOT(SlotStep(CStepMsg*)),
+            Qt::QueuedConnection);
 
     qDebug() << "NetworkController: is started";
 }
@@ -208,18 +210,10 @@ void CNetworkController::SlotSendTimeToStart()
                 m_timer->stop();
                 disconnect(m_timer, SIGNAL(timeout()),
                            this , SLOT(SlotSendTimeToStart()));
-//                m_timer->start(m_timeOut);
-//                connect(m_timer, SIGNAL(timeout()),
-//                        this , SLOT(SlotSendState()));
             }
         }
     }
 }
-
-//void CNetworkController::SlotSendErr()
-//{
-//    //sentToAll(stateStr.ToString());
-//}
 
 void CNetworkController::SlotSendStart(CStartMsg *i_msg)
 {
@@ -249,7 +243,7 @@ void CNetworkController::SlotSendFinish(CFinishMsg *i_msg)
         (*isck)->deleteLater();
     }
 
-    //m_gameGalcon->deleteLater();
+    m_gameGalcon->deleteLater();
 
     emit sentQuit();
 }

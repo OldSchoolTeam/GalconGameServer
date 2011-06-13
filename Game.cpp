@@ -93,14 +93,19 @@ void CGame::GenerateMap(QList<CPlayer*> i_players, int i_width, int i_height,
             int neutralY = (neutralVy + centerY);
 
             srand(rand());
-            int neutralR = 10.0 * rand() / RAND_MAX + 1;
-            int neutralStartFleetSize = 20 * ((float)rand() / RAND_MAX)+15;
+            //int neutralR = 10.0 * rand() / RAND_MAX;
+            int neutralR = rand() % 10 + 1;
+            //int neutralStartFleetSize = 20 * ((float)rand() / RAND_MAX)+15;
+            int neutralStartFleetSize = rand() % 20 + 15;
+
+
             //qDebug() << "fleet size: " << neutralStartFleetSize;
             //qDebug() << "New neutral planet: " << neutralX << " " << neutralY;
             CPlanet mainPlanet(lastPlanetId++, 0,
                                neutralStartFleetSize,
                                neutralR,
-                               neutralX, neutralY);
+                               neutralX,
+                               neutralY);
             mainPlanet.SetStartTime(currentTime);
             m_planetList[mainPlanet.GetPlanetId()] = mainPlanet;
         }
@@ -214,31 +219,6 @@ void CGame::run()
                                      m_mapHeight);
     emit SignalStart(start);
 
-//    qDebug() << "CGame::run()";
-//    while (m_runFlag)
-//    {
-//        qDebug() << "main loop";
-//        qDebug() << "----------------------------";
-//        qDebug() << "Fleets";
-//        for (int i = 0; i<state.GetFleets().size(); ++i)
-//        {
-//            CFleet fleet = state.GetFleets().at(i);
-//            qDebug() << fleet.GetFleetId() << ": " << fleet.GetFleetSize() << ", " << fleet.GetPercent();
-//        }
-//        qDebug() << "Planets";
-//        for (int i = 0; i<state.GetPlanets().size(); ++i)
-//        {
-//            CPlanet planet = state.GetPlanets().at(i);
-//            qDebug() << planet.GetPlanetId() << ": " << planet.GetPlayerId() << ", " << planet.GetFleetSize();
-//        }
-
-
-//        m_dataLock.lock();
-//        recalculation();
-//        m_dataLock.unlock();
-
-////        sleep(1);
-//    }
     exec();
 }
 
@@ -246,14 +226,13 @@ void CGame::recalculation()
 {
     // checking for game finish
     // ...
+    //!!!! ???? а якщо в гравця лише флот лишився???????s!!!!!!!!!!
     bool endGameFlag = true;
     int firstPlayerId = -1;
 
     // looking for two active players
-    //qDebug() << "CGame::recalculation()   foreach (CPlanet planet, m_planetList.values())";
     foreach (CPlanet planet, m_planetList.values())
     {
-        //qDebug() << "CGame::recalculation()   in foreach (CPlanet planet, m_planetList.values())";
         int planetOwnerId = planet.GetPlayerId();
         if ((firstPlayerId == -1) && (planetOwnerId != 0))
         {
@@ -264,17 +243,13 @@ void CGame::recalculation()
         {
             endGameFlag = false;
         }
-        //qDebug() << "CGame::recalculation()   exit foreach (CPlanet planet, m_planetList.values())";
     }
 
-    //qDebug() << "if (endGameFlag)";
     if (endGameFlag)
     {
-        //qDebug() << "in if (endGameFlag)";
-        //qDebug() << "GAME OVER !";
-
+        // здається ми сюда не попадаєм =((((
+        qDebug() << "Game:: GAME OVER!";
         CFinishMsg *finishMsg = new CFinishMsg(firstPlayerId);
-        qDebug() << "\t\t!!!!!!!!!!!!!\tGAME OVER!\t!!!!!!!!!!!!!\t";
         emit SignalFinish(finishMsg);
         quit();
     }

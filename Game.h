@@ -18,7 +18,6 @@ class CGame : public QThread
     Q_OBJECT
 public:
     CGame(QList<CPlayer*> i_id);
-    //CGame(QList<CPlayer *> i_id);
     CStateMsg AddStep(CStepMsg *);
     CStateMsg GetState();
     void run();
