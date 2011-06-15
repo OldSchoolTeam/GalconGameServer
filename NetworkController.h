@@ -39,6 +39,8 @@ private:
     CGame* m_gameGalcon;
     CParser* m_parser;
     QTimer *m_timer;
+    QTimer *m_stepTimer;
+    QTime m_lastStepTime;
 
     QList<CPlayer*> m_playerList;
     QList<CSocket*> m_socketList;

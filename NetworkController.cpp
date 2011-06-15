@@ -20,6 +20,7 @@ CNetworkController::CNetworkController(int i_timeToStart,
     }
 
     m_timer = new QTimer();
+    m_stepTimer = new QTimer();
     connect(m_timer, SIGNAL(timeout()),
             this , SLOT(SlotSendTimeToStart()));
     m_timer->start(1000);
@@ -40,6 +41,7 @@ CNetworkController::~CNetworkController()
     delete m_gameGalcon;
     delete m_parser;
     delete m_timer;
+    delete m_stepTimer;
     qDebug() << "NetworkController: is deleted";
 }
 
@@ -169,6 +171,7 @@ void CNetworkController::sentToAll(QString i_str)
 {
     for ( QList<CSocket *>::Iterator i = m_socketList.begin(); i != m_socketList.end(); ++i)
     {
+        qDebug() << "send" << (*i)->GetId();
         (*i)->SendMsg(i_str);
     }
     qDebug() << "NetworkController: send to all players: " << i_str;
@@ -197,17 +200,17 @@ void CNetworkController::SlotSendTimeToStart()
                     m_gameGalcon = new CGame(m_playerList);
                     connect(m_gameGalcon, SIGNAL(SignalStart(CStartMsg*)),
                             this, SLOT(SlotSendStart(CStartMsg*)),
-                            Qt::DirectConnection);
+                            Qt::QueuedConnection);
                     connect(m_gameGalcon, SIGNAL(SignalFinish(CFinishMsg*)),
                             this, SLOT(SlotSendFinish(CFinishMsg*)),
-                            Qt::DirectConnection);
+                            Qt::QueuedConnection);
 
                     m_gameGalcon->start();
                 }
             }
             else
             {
-                m_timer->stop();
+                //m_timer->stop();
                 disconnect(m_timer, SIGNAL(timeout()),
                            this , SLOT(SlotSendTimeToStart()));
             }
@@ -219,9 +222,10 @@ void CNetworkController::SlotSendStart(CStartMsg *i_msg)
 {
     qDebug() << "CNetworkController: start game";
 
-    m_timer->start(m_timeOut);
-    connect(m_timer, SIGNAL(timeout()),
-            this , SLOT(SlotSendState()));
+    //m_timer->start(m_timeOut);
+    m_stepTimer->start(m_timeOut);
+    connect(m_stepTimer, SIGNAL(timeout()),
+            this , SLOT(SlotSendState()), Qt::QueuedConnection);
 
     sentToAll(i_msg->ToString());
     delete i_msg;
@@ -234,7 +238,7 @@ void CNetworkController::SlotSendFinish(CFinishMsg *i_msg)
     sentToAll(i_msg->ToString());
     delete i_msg;
 
-    disconnect(m_timer, SIGNAL(timeout()), this , SLOT(SlotSendState()));
+    disconnect(m_stepTimer, SIGNAL(timeout()), this , SLOT(SlotSendState()));
 
     for (QList<CSocket *>::iterator isck = m_socketList.begin(); isck != m_socketList.end(); ++isck)
     {
@@ -256,8 +260,7 @@ void CNetworkController::SlotSendState()
 }
 
 void CNetworkController::SlotStep(CStepMsg *i_msg)
-{
-
+{    
     CStateMsg state = m_gameGalcon->AddStep(i_msg);
     sentToAll(state.ToString());
     qDebug() << "NetworkController: add step to game and send state to all players: " << state.ToString();

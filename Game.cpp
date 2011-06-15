@@ -19,105 +19,136 @@ CGame::CGame(QList<CPlayer*> i_id)
     m_runFlag = true;
 }
 
-void CGame::GenerateMap(QList<CPlayer*> i_players, int i_width, int i_height,
-                        int i_startFleetSize, int i_startRadius)
+
+void CGame::GenerateMap(QList<CPlayer *> i_players, int i_width, int i_height,
+                         int i_startFleetSize, int i_startRadius)
 {
-    int centerX = i_width / 2;
-    int centerY = i_height / 2;
+    int lastPlanetId = 1;
+    QTime currentTime = QTime::currentTime();
+    srand((currentTime.msec() / 1000.0) * INT_MAX);
     int playersCount = i_players.size();
 
-    int startPositionX;
-    int startPositionY;
-    if (i_width > i_height)
-    {
-        startPositionX = centerX;
-        startPositionY = centerY / 4;
-    }
-    else
-    {
-        startPositionX = centerX / 4;
-        startPositionY = centerY;
-    }
+    QMap<QPair<int,int>, bool> totalPlanets;
+    int density = 5;
+    float neutralRectWidth = i_width / density;
+    float neutralRectHeight = i_height / density;
 
-    const float PI = 3.14;
-    static int lastPlanetId = 1;
-    QTime currentTime = QTime::currentTime();
-    float da = 2 * PI / playersCount;
-    float vecX = startPositionX - centerX;
-    float vecY = startPositionY - centerY;            
-    //qDebug() << vecX << ", " << vecY;
-    for (float angle = 0; angle < 2*PI; angle += da)
+    for (int i = 0; i<10; ++i)
     {
-        // rotate vector here
-        float curVx = vecX * cos(angle) - vecY * sin(angle);
-        float curVy = vecX * sin(angle) + vecY * cos(angle);
-        //qDebug() << angle << ": " << curVx << ", " << curVy;
-
-        // new planet coords
-        int x = curVx + centerX;
-        int y = curVy + centerY;                
-        if (!i_players.empty())
+        for (int j = 0; j<10; ++j)
         {
-            //qDebug() << "New planet: " << x << " " << y;
+            totalPlanets[QPair<int,int>(i, j)] = false;
+        }
+    }
+
+    // players planet generation
+    int playersLeft = playersCount;
+
+    QMap<int, bool> players;
+    for (int i = 0; i<=8; ++i)
+        players[i] = false;
+
+    while (playersLeft != 0)
+    {
+        // generate number from 0 to 8
+        int r = rand();
+        int cellNum = 8.0 * (((float)r) / RAND_MAX);
+        if (cellNum == 4)
+        {
+            continue;
+        }
+        if (!players[cellNum])
+        {
+            players[cellNum] = true;
+            //qDebug() << "Game: add planet " << cellNum;
+            if (playersLeft != 1)
+            {
+                players[8-cellNum] = true;
+                //qDebug() << "Game: add planet " << 8-cellNum;
+                playersLeft -= 2;
+            }
+            else
+            {
+                playersLeft -= 1;
+            }
+        }
+    }
+
+    float playersRectWidth = i_width / 3.0;
+    float playersRectHeight = i_height / 3.0;
+    float startPlayerX = playersRectWidth / 2;
+    float startPlayerY = playersRectHeight / 2;
+    for (int i = 0; i<=8; ++i)
+    {
+        if (players[i] == true)
+        {
+            int x = i % 3 ; // from 0 to 2
+            int y = i / 3 ; // from 0 to 2
+
+            float baseXPos = startPlayerX + x*playersRectWidth;
+            float baseYPos = startPlayerY + y*playersRectHeight;
+
+            int deviationXPos = ((playersRectWidth/2) * ((float)rand() / RAND_MAX)) - playersRectWidth/4;
+            int deviationYPos = ((playersRectHeight/2) * ((float)rand() / RAND_MAX)) - playersRectHeight/4;
+            int xPos = baseXPos + deviationXPos;
+            int yPos = baseYPos + deviationYPos;
+            qDebug() << "Game: new planet " << xPos << " " << yPos;
             CPlanet mainPlanet(lastPlanetId++, i_players.takeFirst()->GetId(),
                                i_startFleetSize,
                                i_startRadius,
-                               x, y);
+                               xPos, yPos);
             mainPlanet.SetStartTime(currentTime);
             m_planetList[mainPlanet.GetPlanetId()] = mainPlanet;
+
+            int totalX = xPos / neutralRectWidth;
+            int totalY = yPos / neutralRectHeight;
+            //qDebug() << "total: " << totalX << " " << totalY;
+            totalPlanets.insert(QPair<int,int>(totalX, totalY), true);
         }
-
-
-        /////////////////////////////////
-        // adding neutral planets near the player
-        srand((QTime::currentTime().msec() / 1000.0) * INT_MAX);
-        //int r = rand();
-        int neutralPlanetsCount = 2.0 * rand() / RAND_MAX + 2;
-        srand(rand());
-        for (int i = 0; i<neutralPlanetsCount; ++i)
-        {
-            float t = (float)rand() / RAND_MAX;
-            //qDebug() << "t: " << t;
-            t = t / neutralPlanetsCount + (float)i / neutralPlanetsCount;
-            //qDebug() << "t: " << t << " i: " << i;
-            float newAngle = t * (angle - da/2) + (1.0-t) * (angle + da/2);
-            //qDebug() << "newAngle: " << newAngle;
-            srand(rand());
-            float s = (float)rand() / RAND_MAX;
-            //qDebug() << "s: " << s;
-            float neutralVx = s * (vecX * cos(newAngle) - vecY * sin(newAngle));
-            float neutralVy = s * (vecX * sin(newAngle) + vecY * cos(newAngle));
-
-            //qDebug() << "vector: " << neutralVx << ", " << neutralVy;
-            int neutralX = (neutralVx + centerX);
-            int neutralY = (neutralVy + centerY);
-
-            srand(rand());
-            //int neutralR = 10.0 * rand() / RAND_MAX;
-            int neutralR = rand() % 10 + 1;
-            //int neutralStartFleetSize = 20 * ((float)rand() / RAND_MAX)+15;
-            int neutralStartFleetSize = rand() % 20 + 15;
-
-
-            //qDebug() << "fleet size: " << neutralStartFleetSize;
-            //qDebug() << "New neutral planet: " << neutralX << " " << neutralY;
-            CPlanet mainPlanet(lastPlanetId++, 0,
-                               neutralStartFleetSize,
-                               neutralR,
-                               neutralX,
-                               neutralY);
-            mainPlanet.SetStartTime(currentTime);
-            m_planetList[mainPlanet.GetPlanetId()] = mainPlanet;
-        }
-        ////////////////////////////////
     }
+    // -------------------------
+
+    // neutral planets generation
+    float startNeutralX = neutralRectWidth / 2;
+    float startNeutralY = neutralRectHeight / 2;
+
+    int totalPlanetCount = 20;
+    int neutralPlanetCount = totalPlanetCount - playersCount;
+    for (int i = 0; i<neutralPlanetCount;)
+    {
+        int cellX = (density-1) * ((double)rand() / RAND_MAX);
+        int cellY = (density-1) * ((double)rand() / RAND_MAX);
+        if (totalPlanets[QPair<int,int>(cellX, cellY)])
+        {
+            continue;
+        }
+        int baseXPos = cellX * neutralRectWidth + startNeutralX;
+        int baseYPos = cellY * neutralRectHeight + startNeutralY;
+        int deviationXPos = ((neutralRectWidth/2) * ((float)rand() / RAND_MAX)) - neutralRectWidth/4;
+        int deviationYPos = ((neutralRectHeight/2) * ((float)rand() / RAND_MAX)) - neutralRectHeight/4;
+        int xPos = baseXPos + deviationXPos;
+        int yPos = baseYPos + deviationYPos;
+        int neutralPlanetRadius = 5.0 * ((float)rand() / RAND_MAX) + 1;
+        int startNeutralFleetSize = 49.0 * ((float)rand() / RAND_MAX) + 1.0;
+        qDebug() << xPos << " " << yPos;
+        totalPlanets[QPair<int,int>(cellX, cellY)] = true;
+        CPlanet mainPlanet(lastPlanetId++, 0,
+                           startNeutralFleetSize,
+                           neutralPlanetRadius,
+                           xPos, yPos);
+        qDebug() << "Game: neutral planet " << cellX << " " << cellY;
+        mainPlanet.SetStartTime(currentTime);
+        m_planetList[mainPlanet.GetPlanetId()] = mainPlanet;
+        i++;
+    }
+    // --------------------------
 }
 
 CStateMsg CGame::AddStep(CStepMsg *i_step)
-{    
+{
 
     //qDebug() << "CGame::AddStep(CStepMsg *i_step) start \n\t sent " << i_step->GetPercent() << "percent of fleet";
-    static int lastFleetId = 0;
+    static int lastFleetId = 1;
 
     //m_dataLock.lock();
     QTime currentTime = QTime::currentTime();
@@ -145,14 +176,14 @@ CStateMsg CGame::AddStep(CStepMsg *i_step)
     {
         // add new fleet
         CPlanet srcPlanet = m_planetList[srcPlanetId];
-        int percent = i_step->GetPercent();
-        int fleetSize = percent * srcPlanet.GetFleetSize() / 100;
+        int percent = i_step->GetPercent();        
+        int fleetSize = percent * srcPlanet.GetFleetSize() / 100 ;
         int srcPlanetId = srcPlanet.GetPlanetId();
-
-        //qDebug() << "\n\t\tpercent=" << percent << " * ";
-        //qDebug() << "\t\tsrcPlanet.GetFleetSize()=" << srcPlanet.GetFleetSize() << " ==== ";
-        //qDebug() << "\t\tfleetSize=" << fleetSize << "\n";
-
+/*
+        qDebug() << "\n\t\tpercent=" << percent << " * ";
+        qDebug() << "\t\tsrcPlanet.GetFleetSize()=" << srcPlanet.GetFleetSize() << " ==== ";
+        qDebug() << "\t\tfleetSize=" << fleetSize << "\n";
+*/
         // ban on sending fleet
         // from planet to itself
         if (srcPlanetId != dstPlanetId)
@@ -165,7 +196,6 @@ CStateMsg CGame::AddStep(CStepMsg *i_step)
                          currentTime);
             m_fleetList.insert(fleet.GetFleetId(), fleet);
 
-            //qDebug() << "CGame::AddStep(CStepMsg *i_step) start \n\t\t fleet size = " << fleet.GetFleetSize() << " \n\t\tfleetSize = " << fleetSize;
 
 
 
@@ -183,20 +213,16 @@ CStateMsg CGame::AddStep(CStepMsg *i_step)
     CStateMsg result = GetState();
 
    //m_dataLock.unlock();
-    //qDebug() << "CGame::AddStep(CStepMsg *i_step) exit";
-    delete i_step;
+    qDebug() << "CGame::AddStep(CStepMsg *i_step) exit";
     return result;
+
 }
 
 CStateMsg CGame::GetState()
 {
-    //m_dataLock.lock();
-    //qDebug() << "CGame::GetState()    m_dataLock.lock()";
+    qDebug() << "StateMsg CGame: GetState";
     recalculation();
-    //qDebug() << "CGame::GetState()    exit recalculate";
     CStateMsg result(m_fleetList.values(), m_planetList.values());
-    //m_dataLock.unlock();
-    //qDebug() << "CGame::GetState()    m_dataLock.unlock()";
     return result;
 }
 
@@ -224,9 +250,9 @@ void CGame::run()
 
 void CGame::recalculation()
 {
+    qDebug() << "Game: recalculation";
     // checking for game finish
     // ...
-    //!!!! ???? а якщо в гравця лише флот лишився???????s!!!!!!!!!!
     bool endGameFlag = true;
     int firstPlayerId = -1;
 
@@ -247,8 +273,8 @@ void CGame::recalculation()
 
     if (endGameFlag)
     {
-        // здається ми сюда не попадаєм =((((
-        qDebug() << "Game:: GAME OVER!";
+        qDebug() << "Game: GAME OVER !";
+        qDebug() << "Game: winner is " << firstPlayerId;
         CFinishMsg *finishMsg = new CFinishMsg(firstPlayerId);
         emit SignalFinish(finishMsg);
         quit();
@@ -257,45 +283,41 @@ void CGame::recalculation()
     // remove players, who lose
     QMap<int, bool> players;
 
-    //qDebug() << "01";
     foreach (CPlayer* player, m_playerList)
     {
         players.insert(player->GetId(), false);
     }
 
-    //qDebug() << "02";
     for (PlanetIterator iter = m_planetList.begin(); iter != m_planetList.end(); ++iter)
     {
         players[iter->GetPlayerId()] = true;
     }
 
-    //qDebug() << "03";
-    for (PlayerIterator iter = m_playerList.begin(); iter != m_playerList.end(); /*++iter*/)
+    for (PlayerIterator iter = m_playerList.begin(); iter != m_playerList.end();/* ++iter*/)
     {
         if (!players[(*iter)->GetId()])
         {
-            //qDebug() << "REMOVE PLAYER !";
+            qDebug() << "REMOVE PLAYER !" << (*iter)->GetId();
             iter = m_playerList.erase(iter);
         }
         else
         {
-            ++iter;
+            iter++;
         }
     }
 
-    // not tested yet!!!
     // remove all fleets belonged players-losers
 
-    //qDebug() << "04";
-    for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end();/* ++iter*/)
+    qDebug() << "Game: remove fleets";
+    for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end(); /*++iter*/)
     {
         if (!m_planetList.contains(iter.value().GetPlayerId()))
         {
-            m_fleetList.erase(iter);
+            iter = m_fleetList.erase(iter);
         }
         else
         {
-            ++iter;
+            iter++;
         }
     }
 
@@ -303,7 +325,7 @@ void CGame::recalculation()
 
     // update all planets
 
-    //qDebug() << "05";
+    qDebug() << "Game: update planets";
     for (PlanetIterator iter = m_planetList.begin(); iter != m_planetList.end(); ++iter)
     {
         if ( iter.value().GetPlayerId() != 0 )
@@ -317,7 +339,7 @@ void CGame::recalculation()
         }
     }
 
-    //qDebug() << "06";
+    qDebug() << "update fleets";
     for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end(); ++iter)
     {
         int totalDistance = iter.value().GetRouteLength();
@@ -369,19 +391,16 @@ void CGame::recalculation()
         }
     }
 
-    //qDebug() << "07";
-    for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end(); ++iter)
+    // resolve attacks
+    for (FleetIterator iter = m_fleetList.begin(); iter != m_fleetList.end(); /*++iter*/)
     {
         if (iter.value().GetPercent() >= 100)
         {
-            //qDebug() << "(iter.value().GetPercent() >= 100) is TRUE";
-            m_fleetList.erase(iter);
+            iter = m_fleetList.erase(iter);
         }
-//        else
-//        {
-//            qDebug() << "else ";
-//            ++iter;
-//        }
+        else
+        {
+            iter++;
+        }
     }
-    //qDebug() << "08";
 }
